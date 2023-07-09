@@ -1,0 +1,126 @@
+# Exploratory data analysis in Elixir
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.9.4"},
+  {:kino_explorer, "~> 0.1.8"},
+  {:kino_vega_lite, "~> 0.1.8"},
+  {:req, "~> 0.3.10"}
+])
+```
+
+## Setup
+
+Blog post that accompanies this notebook is [here](https://www.travishinkelman.com/eda-elixir/).
+
+```elixir
+require Explorer.DataFrame, as: DF
+require Explorer.Series, as: Series
+```
+
+```elixir
+txhousing =
+  Req.get!("https://www.travishinkelman.com/data/txhousing.csv").body
+  |> DF.load_csv!()
+```
+
+## Summarize and Plot
+
+```elixir
+df_agg_year =
+  txhousing
+  |> DF.group_by("year")
+  |> DF.summarise(
+    avg_sales: mean(sales),
+    avg_volume: mean(volume),
+    avg_median: mean(median)
+  )
+```
+
+```elixir
+VegaLite.new()
+|> VegaLite.data_from_values(df_agg_year, only: ["year", "avg_median"])
+|> VegaLite.mark(:line)
+|> VegaLite.encode_field(:x, "year", type: :quantitative)
+|> VegaLite.encode_field(:y, "avg_median", type: :quantitative)
+```
+
+```elixir
+df_agg_city_year =
+  txhousing
+  |> DF.filter(
+    Series.in(city, ["Austin", "Dallas", "El Paso", "Houston", "Lubbock", "San Antonio"])
+  )
+  |> DF.group_by(["city", "year"])
+  |> DF.summarise(
+    avg_sales: mean(sales),
+    avg_volume: mean(volume),
+    avg_median: mean(median)
+  )
+  |> DF.concat_rows(DF.mutate(df_agg_year, city: "All"))
+```
+
+```elixir
+VegaLite.new()
+|> VegaLite.data_from_values(df_agg_city_year, only: ["year", "avg_median", "city"])
+|> VegaLite.mark(:line)
+|> VegaLite.encode_field(:x, "year", type: :quantitative)
+|> VegaLite.encode_field(:y, "avg_median", type: :quantitative)
+|> VegaLite.encode_field(:color, "city", type: :nominal)
+```
+
+```elixir
+df_agg_month =
+  txhousing
+  |> DF.group_by(:month)
+  |> DF.summarise(
+    avg_sales: mean(sales),
+    avg_volume: mean(volume),
+    avg_median: mean(median)
+  )
+  |> DF.arrange(month)
+```
+
+```elixir
+VegaLite.new()
+|> VegaLite.data_from_values(df_agg_month, only: ["month", "avg_median"])
+|> VegaLite.mark(:line)
+|> VegaLite.encode_field(:x, "month", type: :quantitative)
+|> VegaLite.encode_field(:y, "avg_median", type: :quantitative)
+```
+
+```elixir
+df_agg_city_month =
+  txhousing
+  |> DF.filter(
+    Series.in(city, ["Austin", "Dallas", "El Paso", "Houston", "Lubbock", "San Antonio"])
+  )
+  |> DF.group_by(["city", "month"])
+  |> DF.summarise(
+    avg_sales: mean(sales),
+    avg_volume: mean(volume),
+    avg_median: mean(median)
+  )
+  |> DF.arrange(month)
+  |> DF.concat_rows(DF.mutate(df_agg_month, city: "All"))
+```
+
+```elixir
+VegaLite.new()
+|> VegaLite.data_from_values(df_agg_city_month, only: ["month", "avg_median", "city"])
+|> VegaLite.mark(:line)
+|> VegaLite.encode_field(:x, "month", type: :quantitative)
+|> VegaLite.encode_field(:y, "avg_median", type: :quantitative)
+|> VegaLite.encode_field(:color, "city", type: :nominal)
+```
+
+```elixir
+txhousing
+|> DF.group_by(["city", "year"])
+|> DF.mutate(
+  total_sales: sum(sales),
+  total_volume: sum(volume)
+)
+# need a new mutate when working with newly calculated column
+|> DF.mutate(prop_sales: sales / total_sales)
+```
