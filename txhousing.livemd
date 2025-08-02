@@ -2,16 +2,16 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.9.4"},
-  {:kino_explorer, "~> 0.1.8"},
-  {:kino_vega_lite, "~> 0.1.8"},
-  {:req, "~> 0.3.10"}
+  {:kino, "~> 0.16.1"},
+  {:kino_explorer, "~> 0.1.24"},
+  {:kino_vega_lite, "~> 0.1.13"},
+  {:req, "~> 0.5.15"}
 ])
 ```
 
 ## Setup
 
-Blog post that accompanies this notebook is [here](https://www.travishinkelman.com/eda-elixir/).
+Blog post that accompanies this notebook is [here](https://www.travishinkelman.com/posts/eda-elixir/).
 
 ```elixir
 require Explorer.DataFrame, as: DF
@@ -21,7 +21,7 @@ require Explorer.Series, as: Series
 ```elixir
 txhousing =
   Req.get!("https://www.travishinkelman.com/data/txhousing.csv").body
-  |> DF.load_csv!()
+  |> DF.load_csv!(nil_values: ["", "NA"])
 ```
 
 ## Summarize and Plot
@@ -78,7 +78,7 @@ df_agg_month =
     avg_volume: mean(volume),
     avg_median: mean(median)
   )
-  |> DF.arrange(month)
+  |> DF.sort_by(month)
 ```
 
 ```elixir
@@ -101,7 +101,7 @@ df_agg_city_month =
     avg_volume: mean(volume),
     avg_median: mean(median)
   )
-  |> DF.arrange(month)
+  |> DF.sort_by(month)
   |> DF.concat_rows(DF.mutate(df_agg_month, city: "All"))
 ```
 
